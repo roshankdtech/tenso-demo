@@ -5,7 +5,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import { extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { handleMockApi } from '../vite.mock.ts'
+import { createMockResponse, handleMockRequest } from '../src/mock/handler.ts'
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)), 'dist')
 const PORT = Number(process.env.PORT ?? 8080)
@@ -19,6 +19,16 @@ const TYPES: Record<string, string> = {
   '.png': 'image/png',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
+}
+
+function readText(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve) => {
+    let raw = ''
+    req.on('data', (chunk: Buffer) => {
+      raw += chunk.toString()
+    })
+    req.on('end', () => resolve(raw))
+  })
 }
 
 async function serveFile(res: ServerResponse, file: string): Promise<void> {
@@ -37,8 +47,20 @@ createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? '/', 'http://localhost')
 
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
-      req.url = url.pathname.slice('/api'.length) + url.search
-      await handleMockApi(req, res)
+      const out = createMockResponse()
+      await handleMockRequest(
+        {
+          method: req.method ?? 'GET',
+          url: url.pathname.slice('/api'.length) + url.search,
+          cookie: req.headers.cookie ?? '',
+          bodyText: await readText(req),
+        },
+        out,
+      )
+      const result = out.result()
+      res.statusCode = result.status
+      for (const [name, value] of Object.entries(result.headers)) res.setHeader(name, value)
+      res.end(result.body)
       return
     }
 
@@ -49,7 +71,9 @@ createServer(async (req: IncomingMessage, res: ServerResponse) => {
       res.end('Forbidden')
       return
     }
-    const isFile = await stat(requested).then((s) => s.isFile()).catch(() => false)
+    const isFile = await stat(requested)
+      .then((s) => s.isFile())
+      .catch(() => false)
     await serveFile(res, isFile ? requested : join(ROOT, 'index.html'))
   } catch {
     res.statusCode = 500

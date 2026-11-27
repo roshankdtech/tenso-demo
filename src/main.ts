@@ -4,8 +4,14 @@ import './style.css'
 import App from './App.vue'
 import router from './router'
 import { i18n } from './i18n'
-import { setUnauthorizedHandler } from './api'
+import { apiClient, setUnauthorizedHandler } from './api'
 import { useAuthStore } from './stores/auth'
+
+// Static demo (GitHub Pages): answer API calls from the in-browser mock instead of a server.
+if (import.meta.env.VITE_STATIC_DEMO === 'true') {
+  const { mockAdapter } = await import('./mock/browserAdapter')
+  apiClient.defaults.adapter = mockAdapter
+}
 
 const app = createApp(App)
 const pinia = createPinia()

@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { roleHome, useAuthStore } from '@/stores/auth'
@@ -113,7 +113,11 @@ export const routes: RouteRecordRaw[] = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  // The static demo has no server to rewrite addresses, so it uses #-links (works on GitHub Pages).
+  history:
+    import.meta.env.VITE_STATIC_DEMO === 'true'
+      ? createWebHashHistory(import.meta.env.BASE_URL)
+      : createWebHistory(import.meta.env.BASE_URL),
   routes,
 })
 

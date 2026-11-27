@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   const useMock = env.VITE_MOCK_API === 'true'
 
   return {
+    base: env.VITE_BASE_PATH || '/',
     plugins: [vue(), tailwindcss(), ...(useMock ? [mockApi()] : []), vueDevtools()],
     resolve: {
       alias: {
