@@ -1,0 +1,5 @@
+@import 'tailwindcss';
+
+html:lang(ja) {
+  font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui, sans-serif;
+}
